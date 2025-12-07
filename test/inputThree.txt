@@ -1,0 +1,19 @@
+-- Sample input three: mixed queries and complex WHERE
+
+CREATE TABLE students (id INT, name TEXT, age INT, score FLOAT);
+INSERT INTO students VALUES (1, 'Ali', 19, 88.5);
+INSERT INTO students VALUES (2, 'Sara', 21, 92.0);
+INSERT INTO students VALUES (3, 'Omar', 20, 75.0);
+
+-- Arithmetic and comparisons
+SELECT name, (score + 5) FROM students WHERE age > 18 AND score >= 85;
+SELECT id, name FROM students WHERE age < 22 OR score != 90;
+
+-- Parentheses, commas, semicolons
+SELECT (id), name, age FROM students WHERE (score >= 80) AND (age <= 22);
+
+## Block comment to ignore
+Any content here should be treated as a comment and ignored by the lexer.
+##
+
+DELETE FROM students WHERE id >= 3;

@@ -1,0 +1,21 @@
+-- Sample input two: table creation and data manipulation
+
+CREATE TABLE courses (id INT, title TEXT, credits INT);
+INSERT INTO courses VALUES (101, 'Compilers', 3);
+INSERT INTO courses VALUES (102, 'Databases', 4);
+INSERT INTO courses VALUES (103, 'Algorithms', 3);
+
+-- Update and delete
+UPDATE courses SET credits = 4 WHERE id = 103;
+DELETE FROM courses WHERE credits <= 2;
+
+-- Selection with comparisons and logical ops
+SELECT id, title FROM courses WHERE credits >= 3 AND id < 200;
+
+## multi-line comment
+This should be ignored by the lexer
+spanning multiple lines
+##
+
+SELECT * FROM courses WHERE title != 'Databases';
+

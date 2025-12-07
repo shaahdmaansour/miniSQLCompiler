@@ -1,0 +1,23 @@
+-- This is a single-line comment
+-- Example SQL statements for testing the lexical analyzer
+
+CREATE TABLE students (id INT, name TEXT);
+INSERT INTO students VALUES (1, 'Ali');
+INSERT INTO students VALUES (2, 'Ahmed');
+INSERT INTO students VALUES (3, 'Sara');
+
+SELECT name FROM students WHERE id = 1;
+SELECT * FROM students WHERE age > 18 AND score >= 85;
+SELECT id, name, score FROM students WHERE status = 'active' AND score >= 90;
+SELECT name FROM students WHERE id < 5 OR status != 'inactive';
+
+UPDATE students SET name = 'Ahmed' WHERE id = 2;
+DELETE FROM students WHERE id < 5 OR score <= 50;
+
+## This is a multi-line comment
+that can span multiple lines
+and should be completely ignored
+by the lexical analyzer
+##
+
+SELECT COUNT(*) FROM students WHERE score BETWEEN 70 AND 100;
