@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Lexical Analyzer | Modern GUI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with animated gradient -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🔍</span>
+                    <h1>SQL Lexical Analyzer</h1>
+                </div>
+                
+            </div>
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </header>
+
+        <!-- Main content area -->
+        <main class="main-content">
+            <!-- Input section -->
+            <div class="panel input-panel">
+                <div class="panel-header">
+                    <h2>📝 Input Code</h2>
+                    <div class="button-group">
+                        <select id="analysisMode" class="select">
+                            <option value="detailed">Detailed</option>
+                            <option value="general">General</option>
+                        </select>
+                        <label for="fileUpload" class="btn btn-secondary file-upload-label">
+                            <span class="btn-icon">📁</span>
+                            Upload File
+                        </label>
+                        <input type="file" id="fileUpload" accept=".txt,.sql" style="display: none;">
+                        <button class="btn btn-primary" id="tokenizeBtn">
+                            <span class="btn-text">Tokenize</span>
+                            <span class="btn-loader"></span>
+                        </button>
+                        <button class="btn btn-secondary" id="clearBtn">Clear</button>
+                    </div>
+                </div>
+                <div class="code-editor-wrapper">
+                    <textarea 
+                        id="codeInput" 
+                        class="code-input" 
+                        placeholder="Enter your SQL-like code here...&#10;&#10;Example:&#10;-- This is a comment&#10;SELECT name FROM students WHERE id = 1;&#10;CREATE TABLE users (id INT, name TEXT);"
+                        spellcheck="false"
+                    ></textarea>
+                    <div class="code-hint">Press Ctrl+Enter to tokenize</div>
+                </div>
+            </div>
+
+            <!-- Results section -->
+            <div class="panel results-panel" id="resultsPanel">
+                <div class="panel-header">
+                    <h2>✨ Results</h2>
+                    <div class="button-group">
+                        <div class="token-count" id="tokenCount">0 tokens</div>
+                        <button class="btn btn-secondary btn-download hidden" id="downloadTxtBtn">
+                            <span class="btn-icon">📄</span>
+                            TXT
+                        </button>
+                        <button class="btn btn-secondary btn-download hidden" id="downloadPdfBtn">
+                            <span class="btn-icon">📕</span>
+                            PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="results-content">
+                    <div id="noResults" class="empty-state">
+                        <div class="empty-icon">🎨</div>
+                        <p>Your tokenized results will appear here</p>
+                    </div>
+                    
+                    <div id="resultsContainer" class="results-container hidden"></div>
+                    
+                    <div id="errorContainer" class="error-container hidden">
+                        <div id="errorsList"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
