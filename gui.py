@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Modern GUI for SQL Lexical Analyzer
+Modern GUI for SQL Lexical Analyzer and Parser
 Flask-based web interface with animations and beautiful design
 """
 
 from flask import Flask, render_template, request, jsonify
 from lexer import Lexer, LexerError
+from parser import Parser, ParserError
 import json
 import os
 
@@ -137,8 +138,99 @@ def tokenize():
             'error': f'An unexpected error occurred: {str(e)}'
         })
 
+@app.route('/parse', methods=['POST'])
+def parse():
+    """Handle parsing requests"""
+    try:
+        data = request.get_json()
+        sourceCode = data.get('code', '')
+        
+        if not sourceCode.strip():
+            return jsonify({
+                'success': False,
+                'error': 'Please enter some code to parse'
+            })
+        
+        try:
+            # First tokenize
+            lexer = Lexer(sourceCode)
+            tokens = lexer.tokenize()
+            
+            # Check for lexical errors
+            lexErrors = lexer.getErrors()
+            if lexErrors:
+                errorList = []
+                for error in lexErrors:
+                    errorList.append({
+                        'message': error.message,
+                        'line': error.line,
+                        'col': error.col,
+                        'type': 'lexical'
+                    })
+                return jsonify({
+                    'success': False,
+                    'errors': errorList
+                })
+            
+            # Then parse
+            parser = Parser(tokens)
+            parseTree = parser.parse()
+            
+            # Check for parsing errors
+            parseErrors = parser.getErrors()
+            if parseErrors:
+                errorList = []
+                for error in parseErrors:
+                    errorList.append({
+                        'message': error.message,
+                        'line': error.line,
+                        'col': error.col,
+                        'type': 'syntax',
+                        'expected': error.expected,
+                        'found': error.found
+                    })
+                # Only include parse tree if there are few errors (partial success)
+                parseTreeDict = None
+                if len(parseErrors) <= 5 and parseTree:
+                    try:
+                        parseTreeDict = parseTree.toDict()
+                    except:
+                        pass  # Skip if serialization fails
+                
+                return jsonify({
+                    'success': False,
+                    'errors': errorList,
+                    'parseTree': parseTreeDict
+                })
+            
+            # Success - return parse tree
+            try:
+                parseTreeDict = parseTree.toDict()
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': f'Failed to serialize parse tree: {str(e)}'
+                })
+            
+            return jsonify({
+                'success': True,
+                'parseTree': parseTreeDict
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Parsing error: {str(e)}'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'An unexpected error occurred: {str(e)}'
+        })
+
 if __name__ == '__main__':
-    print("🚀 Starting SQL Lexer GUI...")
+    print("🚀 Starting SQL Lexer & Parser GUI...")
     print("📝 Open your browser and navigate to: http://localhost:5001")
     print("✨ Enjoy the modern interface!")
     app.run(debug=True, host='0.0.0.0', port=5001)

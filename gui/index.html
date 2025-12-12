@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQL Lexical Analyzer | Modern GUI</title>
+    <title>SQL Lexical Analyzer & Parser | Modern GUI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -14,7 +14,7 @@
             <div class="header-content">
                 <div class="logo">
                     <span class="logo-icon">🔍</span>
-                    <h1>SQL Lexical Analyzer</h1>
+                    <h1>SQL Lexical Analyzer & Parser</h1>
                 </div>
                 
             </div>
@@ -30,6 +30,10 @@
                 <div class="panel-header">
                     <h2>📝 Input Code</h2>
                     <div class="button-group">
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" id="tokenizeTab">Tokenize</button>
+                            <button class="tab-btn" id="parseTab">Parse</button>
+                        </div>
                         <select id="analysisMode" class="select">
                             <option value="detailed">Detailed</option>
                             <option value="general">General</option>
@@ -39,7 +43,7 @@
                             Upload File
                         </label>
                         <input type="file" id="fileUpload" accept=".txt,.sql" style="display: none;">
-                        <button class="btn btn-primary" id="tokenizeBtn">
+                        <button class="btn btn-primary" id="actionBtn">
                             <span class="btn-text">Tokenize</span>
                             <span class="btn-loader"></span>
                         </button>
@@ -76,10 +80,21 @@
                 <div class="results-content">
                     <div id="noResults" class="empty-state">
                         <div class="empty-icon">🎨</div>
-                        <p>Your tokenized results will appear here</p>
+                        <p>Your results will appear here</p>
                     </div>
                     
                     <div id="resultsContainer" class="results-container hidden"></div>
+                    
+                    <div id="parseTreeContainer" class="parse-tree-container hidden">
+                        <div class="parse-tree-controls">
+                            <button class="btn btn-secondary" id="textTreeBtn">📝 Text View</button>
+                            <button class="btn btn-secondary" id="visualTreeBtn">🌳 Visual Tree</button>
+                        </div>
+                        <div id="parseTree" class="parse-tree-text"></div>
+                        <div id="visualTree" class="parse-tree-visual hidden">
+                            <svg id="treeSvg"></svg>
+                        </div>
+                    </div>
                     
                     <div id="errorContainer" class="error-container hidden">
                         <div id="errorsList"></div>
