@@ -1,0 +1,49 @@
+-- Test file for ambiguity checking
+-- This file contains examples with multiple tables that have overlapping column names
+-- Note: Current grammar only supports single-table queries, so ambiguity won't occur
+-- However, the infrastructure is in place and will work if grammar is extended
+
+-- Create multiple tables with overlapping column names
+CREATE TABLE students (id INT, name TEXT, age INT, score FLOAT);
+CREATE TABLE teachers (id INT, name TEXT, age INT, salary FLOAT);
+CREATE TABLE courses (id INT, name TEXT, credits INT);
+
+-- Insert some data
+INSERT INTO students VALUES (1, 'Alice', 20, 95.5);
+INSERT INTO students VALUES (2, 'Bob', 21, 87.0);
+INSERT INTO teachers VALUES (101, 'Dr. Smith', 45, 75000.0);
+INSERT INTO teachers VALUES (102, 'Dr. Jones', 50, 80000.0);
+INSERT INTO courses VALUES (201, 'Database Systems', 3);
+INSERT INTO courses VALUES (202, 'Compiler Design', 4);
+
+-- Single-table queries (no ambiguity - these should all work)
+SELECT name FROM students WHERE id = 1;
+SELECT id, name, age FROM students WHERE score >= 90;
+SELECT * FROM teachers WHERE age > 40;
+SELECT name FROM courses WHERE credits >= 3;
+
+-- Queries with WHERE clauses using columns that exist in multiple tables
+-- (No ambiguity in current grammar since only one table per query)
+SELECT name FROM students WHERE age > 18 AND score >= 85;
+SELECT id FROM teachers WHERE name = 'Dr. Smith' AND salary > 70000;
+SELECT name FROM courses WHERE id < 300;
+
+-- UPDATE and DELETE statements
+UPDATE students SET score = 98.0 WHERE id = 1;
+UPDATE teachers SET salary = 85000.0 WHERE id = 101;
+DELETE FROM students WHERE age < 20 OR score < 60;
+DELETE FROM courses WHERE credits < 3;
+
+-- Complex WHERE clauses with multiple conditions
+SELECT name FROM students WHERE (age > 20 AND score >= 90) OR (age <= 20 AND score >= 95);
+SELECT id, name FROM teachers WHERE (age >= 40 AND salary >= 75000) OR (age < 40 AND salary >= 70000);
+
+## Multi-line comment
+These queries demonstrate that even though multiple tables
+have columns with the same names (id, name, age), there's
+no ambiguity because each query only references one table.
+If the grammar were extended to support JOINs, the ambiguity
+checking infrastructure would detect and report ambiguous
+column references.
+##
+
