@@ -7,6 +7,7 @@ Flask-based web interface with animations and beautiful design
 from flask import Flask, render_template, request, jsonify
 from lexer import Lexer, LexerError
 from parser import Parser, ParserError
+from semanticAnalyzer import SemanticAnalyzer, SemanticError
 import json
 import os
 
@@ -221,6 +222,104 @@ def parse():
             return jsonify({
                 'success': False,
                 'error': f'Parsing error: {str(e)}'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'An unexpected error occurred: {str(e)}'
+        })
+
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    """Handle semantic analysis requests"""
+    try:
+        data = request.get_json()
+        sourceCode = data.get('code', '')
+        
+        if not sourceCode.strip():
+            return jsonify({
+                'success': False,
+                'error': 'Please enter some code to analyze'
+            })
+        
+        try:
+            # First tokenize
+            lexer = Lexer(sourceCode)
+            tokens = lexer.tokenize()
+            
+            # Check for lexical errors
+            lexErrors = lexer.getErrors()
+            if lexErrors:
+                errorList = []
+                for error in lexErrors:
+                    errorList.append({
+                        'message': error.message,
+                        'line': error.line,
+                        'col': error.col,
+                        'type': 'lexical'
+                    })
+                return jsonify({
+                    'success': False,
+                    'errors': errorList
+                })
+            
+            # Then parse
+            parser = Parser(tokens)
+            parseTree = parser.parse()
+            
+            # Check for parsing errors
+            parseErrors = parser.getErrors()
+            if parseErrors:
+                errorList = []
+                for error in parseErrors:
+                    errorList.append({
+                        'message': error.message,
+                        'line': error.line,
+                        'col': error.col,
+                        'type': 'syntax',
+                        'expected': error.expected,
+                        'found': error.found
+                    })
+                return jsonify({
+                    'success': False,
+                    'errors': errorList
+                })
+            
+            # Perform semantic analysis
+            analyzer = SemanticAnalyzer(parseTree)
+            isValid = analyzer.analyze()
+            
+            # Check for semantic errors
+            semanticErrors = analyzer.getErrors()
+            if semanticErrors:
+                errorList = []
+                for error in semanticErrors:
+                    errorList.append({
+                        'message': error.message,
+                        'line': error.line,
+                        'col': error.col,
+                        'type': 'semantic'
+                    })
+                return jsonify({
+                    'success': False,
+                    'errors': errorList,
+                    'symbolTable': analyzer.getSymbolTable().dump(),
+                    'annotatedTree': analyzer.getAnnotatedTree()
+                })
+            
+            # Success - return semantic analysis results
+            return jsonify({
+                'success': True,
+                'message': 'Semantic Analysis Successful. Query is valid.',
+                'symbolTable': analyzer.getSymbolTable().dump(),
+                'annotatedTree': analyzer.getAnnotatedTree()
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Semantic analysis error: {str(e)}'
             })
             
     except Exception as e:
