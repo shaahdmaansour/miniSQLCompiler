@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const actionBtn = document.getElementById('actionBtn');
     const tokenizeTab = document.getElementById('tokenizeTab');
     const parseTab = document.getElementById('parseTab');
+    const analyzeTab = document.getElementById('analyzeTab');
     const clearBtn = document.getElementById('clearBtn');
     const fileUpload = document.getElementById('fileUpload');
     const downloadTxtBtn = document.getElementById('downloadTxtBtn');
@@ -26,8 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Store current tokens for download
     let currentTokens = [];
     let currentFileName = 'tokens';
-    let currentMode = 'tokenize'; // 'tokenize' or 'parse'
+    let currentMode = 'tokenize'; // 'tokenize', 'parse', or 'analyze'
     let currentParseTree = null; // Store parse tree data
+    let currentSymbolTable = null; // Store symbol table
+    let currentAnnotatedTree = null; // Store annotated parse tree
 
     // Helper: truncate text to fit a given width in the current doc/font
     function truncateToWidth(text, maxWidth, doc) {
@@ -54,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMode = 'tokenize';
         tokenizeTab.classList.add('active');
         parseTab.classList.remove('active');
+        analyzeTab.classList.remove('active');
         actionBtn.querySelector('.btn-text').textContent = 'Tokenize';
         analysisMode.style.display = 'block';
         hideResults();
@@ -63,7 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMode = 'parse';
         parseTab.classList.add('active');
         tokenizeTab.classList.remove('active');
+        analyzeTab.classList.remove('active');
         actionBtn.querySelector('.btn-text').textContent = 'Parse';
+        analysisMode.style.display = 'none';
+        hideResults();
+    });
+
+    analyzeTab.addEventListener('click', () => {
+        currentMode = 'analyze';
+        analyzeTab.classList.add('active');
+        tokenizeTab.classList.remove('active');
+        parseTab.classList.remove('active');
+        actionBtn.querySelector('.btn-text').textContent = 'Analyze';
         analysisMode.style.display = 'none';
         hideResults();
     });
@@ -74,8 +89,10 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             if (currentMode === 'tokenize') {
                 tokenizeCode();
-            } else {
+            } else if (currentMode === 'parse') {
                 parseCode();
+            } else if (currentMode === 'analyze') {
+                analyzeCode();
             }
         }
     });
@@ -84,8 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
     actionBtn.addEventListener('click', () => {
         if (currentMode === 'tokenize') {
             tokenizeCode();
-        } else {
+        } else if (currentMode === 'parse') {
             parseCode();
+        } else if (currentMode === 'analyze') {
+            analyzeCode();
         }
     });
 
@@ -105,9 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 codeInput.value = event.target.result;
                 // Auto process after upload
                 if (currentMode === 'tokenize') {
-                tokenizeCode();
-                } else {
+                    tokenizeCode();
+                } else if (currentMode === 'parse') {
                     parseCode();
+                } else if (currentMode === 'analyze') {
+                    analyzeCode();
                 }
             };
             reader.readAsText(file);
@@ -421,6 +442,196 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             setLoading(false);
         }
+    }
+
+    // Semantic analysis function
+    async function analyzeCode() {
+        const code = codeInput.value.trim();
+        
+        if (!code) {
+            showError('Please enter some code to analyze');
+            return;
+        }
+
+        // Show loading state
+        setLoading(true);
+        hideResults();
+        
+        try {
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                currentSymbolTable = data.symbolTable || {};
+                currentAnnotatedTree = data.annotatedTree || null;
+                showSemanticAnalysis(data);
+                tokenCount.textContent = 'Semantic analysis successful';
+                downloadTxtBtn.classList.add('hidden');
+                downloadPdfBtn.classList.add('hidden');
+            } else {
+                // Handle errors
+                if (data.errors && Array.isArray(data.errors)) {
+                    showErrors(data.errors);
+                    // If symbol table or annotated tree is available despite errors, show it
+                    if (data.symbolTable || data.annotatedTree) {
+                        currentSymbolTable = data.symbolTable || {};
+                        currentAnnotatedTree = data.annotatedTree || null;
+                        showSemanticAnalysis(data, true);
+                    }
+                } else if (data.error) {
+                    showError(data.error);
+                } else {
+                    showError('An unknown error occurred');
+                }
+            }
+        } catch (error) {
+            showError('An error occurred while analyzing. Please try again.');
+            console.error('Error:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Show semantic analysis results
+    function showSemanticAnalysis(data, hasErrors = false) {
+        noResults.classList.add('hidden');
+        errorContainer.classList.add('hidden');
+        resultsContainer.classList.remove('hidden');
+        parseTreeContainer.classList.add('hidden');
+        
+        resultsContainer.innerHTML = '';
+        // Override grid layout with flexbox for semantic analysis
+        resultsContainer.style.cssText = 'display: flex; flex-direction: column; height: 100%; max-height: none; gap: 0; padding: 10px; overflow: hidden;';
+        
+        // Create wrapper for success message and symbol table
+        const topSection = document.createElement('div');
+        topSection.style.cssText = 'flex-shrink: 0; margin-bottom: 20px;';
+        
+        // Show success message (compact, centered)
+        if (!hasErrors && data.message) {
+            const successWrapper = document.createElement('div');
+            successWrapper.style.cssText = 'text-align: center; margin-bottom: 15px; width: 100%;';
+            
+            const successBox = document.createElement('div');
+            successBox.className = 'success-box';
+            successBox.style.cssText = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border-radius: 8px; display: inline-block; width: auto;';
+            successBox.innerHTML = `<span style="font-size: 14px; font-weight: 500;">✅ ${escapeHtml(data.message)}</span>`;
+            
+            successWrapper.appendChild(successBox);
+            topSection.appendChild(successWrapper);
+        }
+        
+        // Show symbol table (right below success message)
+        if (data.symbolTable && Object.keys(data.symbolTable).length > 0) {
+            const symbolTableCard = document.createElement('div');
+            symbolTableCard.className = 'token-card';
+            symbolTableCard.style.cssText = 'padding: 20px;';
+            
+            let symbolTableHtml = '<h3 style="margin-top: 0; color: var(--primary-color);">📊 Symbol Table</h3>';
+            
+            for (const tableName in data.symbolTable) {
+                const tableInfo = data.symbolTable[tableName];
+                symbolTableHtml += `<div style="margin-bottom: 15px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border-left: 4px solid var(--primary-color);">`;
+                symbolTableHtml += `<h4 style="margin: 0 0 10px 0; color: var(--primary-color);">Table: <strong>${escapeHtml(tableName)}</strong></h4>`;
+                symbolTableHtml += '<div style="margin-left: 20px;">';
+                
+                if (tableInfo.columns && tableInfo.columns.length > 0) {
+                    symbolTableHtml += '<table style="width: 100%; border-collapse: collapse;">';
+                    symbolTableHtml += '<thead><tr style="background: rgba(102, 126, 234, 0.2);"><th style="padding: 8px; text-align: center;">Column Name</th><th style="padding: 8px; text-align: center;">Data Type</th></tr></thead>';
+                    symbolTableHtml += '<tbody>';
+                    tableInfo.columns.forEach(col => {
+                        symbolTableHtml += `<tr><td style="padding: 8px; border-bottom: 1px solid rgba(102, 126, 234, 0.1); text-align: center;">${escapeHtml(col.name)}</td><td style="padding: 8px; border-bottom: 1px solid rgba(102, 126, 234, 0.1); text-align: center;"><code style="background: rgba(102, 126, 234, 0.2); padding: 2px 6px; border-radius: 4px;">${escapeHtml(col.type)}</code></td></tr>`;
+                    });
+                    symbolTableHtml += '</tbody></table>';
+                }
+                
+                symbolTableHtml += '</div></div>';
+            }
+            
+            symbolTableCard.innerHTML = symbolTableHtml;
+            topSection.appendChild(symbolTableCard);
+        }
+        
+        resultsContainer.appendChild(topSection);
+        
+        // Show annotated parse tree (takes rest of space)
+        if (data.annotatedTree) {
+            const treeCard = document.createElement('div');
+            treeCard.className = 'token-card';
+            treeCard.style.cssText = 'flex: 1; display: flex; flex-direction: column; padding: 20px; min-height: 0; overflow: hidden;';
+            
+            treeCard.innerHTML = `
+                <h3 style="margin-top: 0; color: var(--primary-color); flex-shrink: 0;">🌳 Annotated Parse Tree</h3>
+                <div style="background: #1e1e1e; padding: 15px; border-radius: 8px; overflow: auto; font-family: 'Courier New', monospace; font-size: 14px; flex: 1; min-height: 0;">
+                    <div id="annotatedTreeDisplay"></div>
+                </div>
+            `;
+            resultsContainer.appendChild(treeCard);
+            
+            // Render annotated tree
+            const annotatedTreeDisplay = document.getElementById('annotatedTreeDisplay');
+            if (annotatedTreeDisplay) {
+                annotatedTreeDisplay.innerHTML = renderAnnotatedTree(data.annotatedTree, 0);
+            }
+        }
+    }
+    
+    // Render annotated parse tree with semantic information
+    function renderAnnotatedTree(node, level = 0, isLast = true, prefix = '', isRoot = true) {
+        if (!node) return '';
+        
+        const nodeType = node.nodeType || '';
+        const token = node.token || null;
+        const semanticInfo = node.semanticInfo || {};
+        const children = node.children || [];
+        const validChildren = children.filter(child => typeof child === 'object' && child !== null && child.nodeType);
+        
+        // Determine tree connectors
+        const connector = isRoot ? '' : (isLast ? '└─ ' : '├─ ');
+        const spacer = isRoot ? '' : (isLast ? '   ' : '│  ');
+        
+        let html = '<div style="margin: 2px 0;">';
+        
+        // Tree line with connector
+        if (isRoot) {
+            html += `<span style="color: #4ec9b0; font-weight: bold;">${escapeHtml(nodeType)}</span>`;
+        } else {
+            html += `<span style="color: #808080;">${prefix}${connector}</span>`;
+            html += `<span style="color: #4ec9b0;">${escapeHtml(nodeType)}</span>`;
+        }
+        
+        // Show token
+        if (token) {
+            html += ` <span style="color: #ce9178;">[${escapeHtml(token.lexeme)}]</span>`;
+        }
+        
+        // Show semantic annotations
+        if (semanticInfo.dataType) {
+            html += ` <span style="color: #569cd6; font-style: italic;">&lt;${escapeHtml(semanticInfo.dataType)}&gt;</span>`;
+        }
+        if (semanticInfo.symbolTableRef) {
+            html += ` <span style="color: #dcdcaa;">→ ${escapeHtml(semanticInfo.symbolTableRef.table)}.${escapeHtml(semanticInfo.symbolTableRef.column)}</span>`;
+        }
+        
+        html += '</div>';
+        
+        // Render children
+        if (validChildren.length > 0) {
+            validChildren.forEach((child, index) => {
+                const isLastChild = index === validChildren.length - 1;
+                const newPrefix = prefix + spacer;
+                html += renderAnnotatedTree(child, level + 1, isLastChild, newPrefix, false);
+            });
+        }
+        
+        return html;
     }
 
     // Show parse tree
